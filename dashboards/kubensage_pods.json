@@ -1,0 +1,838 @@
+{
+  "__inputs": [
+    {
+      "name": "DS_PROMETHEUS",
+      "label": "prometheus",
+      "description": "",
+      "type": "datasource",
+      "pluginId": "prometheus",
+      "pluginName": "Prometheus"
+    }
+  ],
+  "__elements": {},
+  "__requires": [
+    {
+      "type": "grafana",
+      "id": "grafana",
+      "name": "Grafana",
+      "version": "12.1.0"
+    },
+    {
+      "type": "datasource",
+      "id": "prometheus",
+      "name": "Prometheus",
+      "version": "1.0.0"
+    },
+    {
+      "type": "panel",
+      "id": "table",
+      "name": "Table",
+      "version": ""
+    },
+    {
+      "type": "panel",
+      "id": "text",
+      "name": "Text",
+      "version": ""
+    },
+    {
+      "type": "panel",
+      "id": "timeseries",
+      "name": "Time series",
+      "version": ""
+    }
+  ],
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": null,
+  "links": [],
+  "panels": [
+    {
+      "gridPos": {
+        "h": 7,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "id": 17,
+      "options": {
+        "code": {
+          "language": "plaintext",
+          "showLineNumbers": false,
+          "showMiniMap": false
+        },
+        "content": "# kubensage-agent\n\n`kubensage-agent` is a lightweight telemetry agent designed to run on Kubernetes nodes. It collects detailed host- and\ncontainer-level metrics using the Kubernetes CRI (Container Runtime Interface) by establishing a direct gRPC connection\nto the container runtime socket. The collected data is sent via GRPC to an external relay for enrichment and export to\nsystems like Prometheus.\n\n---\n\n## ✨ Features\n\n* Collects **node metrics**: CPU, memory, PSI, network interfaces, uptime, kernel info, etc.\n* Collects **pod & container metrics**: per-container CPU, memory, filesystem, and swap usage.\n* Connects directly to the **CRI runtime socket** using **gRPC** to gather runtime data from `containerd`, `CRI-O`, or\n  `dockershim`.\n* Clean, modular Go code with extensibility in mind.\n\n---\n\n## 📊 Metrics Overview\n\nThe agent collects a wide variety of metrics structured into the following main objects:\n\n### `Metrics`\n\nTop-level struct containing everything gathered during one polling iteration.\n\n```go\npackage metrics\n\ntype Metrics struct {\n\tNodeMetrics *NodeMetrics\n\tPodMetrics  []*PodMetrics\n}\n\n```\n\n### `NodeMetrics`\n\nHost-level system metrics: CPU info, memory usage, PSI, network interfaces, OS/kernel metadata.\n\n### `PodMetrics` & `ContainerMetrics`\n\nEach pod includes container-level statistics, such as:\n\n* CPU usage (nano cores / core-seconds)\n* Memory usage (RSS, WorkingSet, etc.)\n* Filesystem usage (used bytes, inodes)\n* Swap usage (optional)\n\nAll metrics are safely extracted, even in partial or incomplete container states.\n\n---\n\n## 🔄 Agent Loop\n\nThe `main.go` runs a periodic collection loop:\n\n1. Detects the CRI socket (containerd, CRI-O, dockershim)\n2. Opens a **gRPC connection** to the container runtime via the detected socket (e.g.,\n   `/run/containerd/containerd.sock`)\n3. Every `n seconds`, calls `discovery.GetAllMetrics()` to collect all available data\n4. Converts the metrics to Proto\n5. Sends them to the relay, via GRPC\n\nHandles SIGINT/SIGTERM gracefully.\n\n---\n\n## 🛠️ Building the Agent\n\nTo build the `kubensage-agent` binary for multiple platforms, a `Makefile` is provided.\nThe output binaries are placed in `.go-builds/`, and versioning is controlled via the `VERSION` variable.\n\n### 🔧 Available Make Targets\n\n* `make build-all`: Builds binaries for all supported OS/ARCH combinations:\n\n    * Linux (amd64, arm64)\n    * macOS (amd64, arm64)\n    * Windows (amd64)\n\n* `make build-proto`: Compiles -proto files\n\n* `make build-linux-amd64`: Builds for Linux x86\\_64\n\n* `make build-linux-arm64`: Builds for Linux ARM64\n\n* `make build-darwin-amd64`: Builds for macOS Intel\n\n* `make build-darwin-arm64`: Builds for macOS Apple Silicon\n\n* `make build-windows-amd64`: Builds for Windows x86\\_64\n\n* `make clean`: Removes the `.go-builds` output directory\n\n### 🏷️ Release\n\nTo tag a release in Git you just need to open a PR to main branch, the CI will create automatically a new TAG and a new\nRelease.\n\n### 🧪 Example\n\n```bash\nVERSION=1.0.0 make build-linux-amd64\n```\n\nThis builds `kubensage-agent-1.0.0-linux-amd64` in the `.go-builds/` directory.\n\nEnsure Go is installed and in your `PATH`, and that you are in the root of the repository when running `make` commands.\n\nLogs are written to `kubensage-agent.log` in append mode. Ensure the agent has read access to CRI socket (usually root).\n\n---\n\n## 📡 Roadmap\n\n* [x] Collect node + container metrics\n* [x] Structured logging\n* [x] PSI support\n* [x] Agent push to relay\n* [ ] Systemd service unit for agent deployment\n\n---\n\n## 📄 License (for now)\n\nMIT © 2025 kubensage authors",
+        "mode": "markdown"
+      },
+      "pluginVersion": "12.1.0",
+      "type": "text"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 7
+      },
+      "id": 21,
+      "panels": [],
+      "title": "PODS",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "description": "Pod list with infos",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "fixedColor": "text",
+            "mode": "fixed"
+          },
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto",
+              "wrapText": true
+            },
+            "filterable": true,
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Pod State"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "options": {
+                      "CONTAINER_CREATED": {
+                        "color": "#00deff",
+                        "index": 1
+                      },
+                      "CONTAINER_EXITED": {
+                        "color": "semi-dark-red",
+                        "index": 3
+                      },
+                      "CONTAINER_RUNNING": {
+                        "color": "#1eff00",
+                        "index": 2
+                      },
+                      "CONTAINER_UNKNOWN": {
+                        "color": "semi-dark-red",
+                        "index": 4
+                      },
+                      "SANDBOX_NOTREADY": {
+                        "color": "dark-red",
+                        "index": 5
+                      },
+                      "SANDBOX_READY": {
+                        "color": "#1eff00",
+                        "index": 0
+                      }
+                    },
+                    "type": "value"
+                  }
+                ]
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
+              },
+              {
+                "id": "custom.align",
+                "value": "center"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Memory container in MB"
+            },
+            "properties": [
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "mode": "gradient",
+                  "type": "gauge",
+                  "valueDisplayMode": "text"
+                }
+              },
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "dark-green",
+                  "mode": "fixed"
+                }
+              },
+              {
+                "id": "unit",
+                "value": "bytes"
+              },
+              {
+                "id": "custom.align",
+                "value": "center"
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 18,
+        "w": 24,
+        "x": 0,
+        "y": 8
+      },
+      "id": 19,
+      "options": {
+        "cellHeight": "md",
+        "footer": {
+          "countRows": false,
+          "enablePagination": false,
+          "fields": "",
+          "reducer": [
+            "sum"
+          ],
+          "show": false
+        },
+        "showHeader": true
+      },
+      "pluginVersion": "12.1.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "node_pods_list{hostname=\"$hostname\"}",
+          "format": "table",
+          "hide": false,
+          "instant": true,
+          "legendFormat": "__auto",
+          "range": false,
+          "refId": "A"
+        }
+      ],
+      "title": "Pod list",
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true,
+              "Time 1": true,
+              "Time 2": true,
+              "Value": true,
+              "Value #A": true,
+              "__name__": true,
+              "container": true,
+              "created_at": true,
+              "hostname 1": false,
+              "hostname 2": true,
+              "id": true,
+              "instance": true,
+              "job": true,
+              "namespace": false,
+              "namespace 1": true,
+              "namespace 2": true
+            },
+            "includeByName": {},
+            "indexByName": {
+              "Time": 10,
+              "Value": 11,
+              "__name__": 3,
+              "created_at": 4,
+              "hostname": 0,
+              "id": 5,
+              "instance": 6,
+              "job": 7,
+              "namespace": 2,
+              "pod": 1,
+              "pod_id": 8,
+              "pod_state": 9
+            },
+            "orderByMode": "manual",
+            "renameByName": {
+              "Value #B": "Memory container in MB",
+              "created_at": "Created At",
+              "hostname": "Node",
+              "hostname 1": "Node",
+              "namespace": "Namespace",
+              "pod": "Pod name",
+              "pod_id": "Pod ID",
+              "pod_state": "Pod State",
+              "source": "Node",
+              "target": "Pod name"
+            }
+          }
+        }
+      ],
+      "type": "table"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "description": "Each container running in one pod. Containers are comma separated.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "fixedColor": "text",
+            "mode": "fixed"
+          },
+          "custom": {
+            "align": "center",
+            "cellOptions": {
+              "type": "auto",
+              "wrapText": false
+            },
+            "filterable": false,
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Pod"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "dark-orange",
+                  "mode": "fixed"
+                }
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Container/s (allValues)"
+            },
+            "properties": [
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text",
+                  "wrapText": false
+                }
+              },
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "orange",
+                  "mode": "fixed"
+                }
+              },
+              {
+                "id": "custom.align",
+                "value": "center"
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 14,
+        "w": 24,
+        "x": 0,
+        "y": 26
+      },
+      "id": 24,
+      "options": {
+        "cellHeight": "sm",
+        "footer": {
+          "countRows": false,
+          "enablePagination": false,
+          "fields": "",
+          "reducer": [
+            "sum"
+          ],
+          "show": false
+        },
+        "showHeader": true
+      },
+      "pluginVersion": "12.1.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "node_container_list{hostname=\"$hostname\"}",
+          "format": "table",
+          "hide": false,
+          "instant": true,
+          "legendFormat": "__auto",
+          "range": false,
+          "refId": "B"
+        }
+      ],
+      "title": "Containers per Pod",
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true,
+              "Time 1": true,
+              "Time 2": true,
+              "Value": true,
+              "Value #A": true,
+              "Value #B": true,
+              "__name__": true,
+              "__name__ 1": true,
+              "__name__ 2": true,
+              "attempt": true,
+              "container": false,
+              "created_at": true,
+              "hostname": true,
+              "hostname 1": true,
+              "hostname 2": true,
+              "image": true,
+              "instance": true,
+              "instance 1": true,
+              "instance 2": true,
+              "job": true,
+              "job 1": true,
+              "job 2": true,
+              "namespace": false,
+              "namespace 1": true,
+              "namespace 2": true,
+              "pod_id": true,
+              "pod_state": true,
+              "state": true
+            },
+            "includeByName": {},
+            "indexByName": {
+              "Time": 0,
+              "Value": 8,
+              "__name__": 2,
+              "container": 3,
+              "hostname": 4,
+              "instance": 5,
+              "job": 6,
+              "namespace": 7,
+              "pod": 1
+            },
+            "renameByName": {
+              "container": "Container/s",
+              "namespace": "Namespace",
+              "pod": "Pod"
+            }
+          }
+        },
+        {
+          "id": "groupBy",
+          "options": {
+            "fields": {
+              "Container/s": {
+                "aggregations": [
+                  "allValues"
+                ],
+                "operation": "aggregate"
+              },
+              "Namespace": {
+                "aggregations": [
+                  "last"
+                ],
+                "operation": "aggregate"
+              },
+              "container": {
+                "aggregations": [
+                  "allValues"
+                ],
+                "operation": "aggregate"
+              },
+              "namespace": {
+                "aggregations": [
+                  "last"
+                ],
+                "operation": "aggregate"
+              },
+              "pod": {
+                "aggregations": [],
+                "operation": "groupby"
+              }
+            }
+          }
+        }
+      ],
+      "type": "table"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 40
+      },
+      "id": 22,
+      "panels": [],
+      "title": "CONTAINERS",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "description": "Container memory usage. This panel is filtered by top page variable",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "fixedColor": "#00f2ff",
+            "mode": "palette-classic-by-name"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 100,
+            "gradientMode": "opacity",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "smooth",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "decimals": 2,
+          "fieldMinMax": true,
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              }
+            ]
+          },
+          "unit": "bytes"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 19,
+        "w": 24,
+        "x": 0,
+        "y": 41
+      },
+      "id": 20,
+      "options": {
+        "legend": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "12.1.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "editorMode": "code",
+          "expr": "container_memory_usage_bytes{hostname=\"$hostname\", pod=\"$podList\", state=\"$containerStatus\"}",
+          "instant": false,
+          "legendFormat": "Pod: {{pod}} -> Container: {{container}}",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "Container memory usage",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "description": "Container CPU usage percentage. This panel is filtered by top page variable",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "fixedColor": "#00f2ff",
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 100,
+            "gradientMode": "opacity",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "smooth",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "fieldMinMax": false,
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              }
+            ]
+          },
+          "unit": "percent"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 19,
+        "w": 24,
+        "x": 0,
+        "y": 60
+      },
+      "id": 23,
+      "options": {
+        "legend": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "12.1.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "editorMode": "code",
+          "expr": "(container_cpu_usage_nano_cores{hostname=\"$hostname\", pod=\"$podList\", state=\"$containerStatus\"} / 1e9) * 100",
+          "instant": false,
+          "legendFormat": "Pod: {{pod}} -> Container: {{container}}",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "Container CPU usage",
+      "type": "timeseries"
+    }
+  ],
+  "refresh": "5s",
+  "schemaVersion": 41,
+  "tags": [],
+  "templating": {
+    "list": [
+      {
+        "current": {},
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${DS_PROMETHEUS}"
+        },
+        "definition": "label_values(node_cpu_usage_percent,hostname)",
+        "includeAll": false,
+        "label": "Node",
+        "name": "hostname",
+        "options": [],
+        "query": {
+          "qryType": 1,
+          "query": "label_values(node_cpu_usage_percent,hostname)",
+          "refId": "PrometheusVariableQueryEditor-VariableQuery"
+        },
+        "refresh": 1,
+        "regex": "",
+        "type": "query"
+      },
+      {
+        "current": {},
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${DS_PROMETHEUS}"
+        },
+        "definition": "label_values(node_pods_list{hostname=\"$hostname\"},pod)",
+        "includeAll": false,
+        "label": "Pod",
+        "name": "podList",
+        "options": [],
+        "query": {
+          "qryType": 1,
+          "query": "label_values(node_pods_list{hostname=\"$hostname\"},pod)",
+          "refId": "PrometheusVariableQueryEditor-VariableQuery"
+        },
+        "refresh": 2,
+        "regex": "",
+        "type": "query"
+      },
+      {
+        "current": {
+          "text": "CONTAINER_RUNNING",
+          "value": "CONTAINER_RUNNING"
+        },
+        "description": "",
+        "includeAll": false,
+        "label": "Container status",
+        "name": "containerStatus",
+        "options": [
+          {
+            "selected": true,
+            "text": "CONTAINER_RUNNING",
+            "value": "CONTAINER_RUNNING"
+          },
+          {
+            "selected": false,
+            "text": "CONTAINER_EXITED",
+            "value": "CONTAINER_EXITED"
+          }
+        ],
+        "query": "CONTAINER_RUNNING, CONTAINER_EXITED",
+        "type": "custom"
+      },
+      {
+        "baseFilters": [],
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${DS_PROMETHEUS}"
+        },
+        "filters": [],
+        "name": "Filters",
+        "type": "adhoc"
+      }
+    ]
+  },
+  "time": {
+    "from": "now-30m",
+    "to": "now"
+  },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "Kubensage Pod and Containers Dashboard",
+  "uid": "aerxv4mavtgjkfg",
+  "version": 11,
+  "weekStart": ""
+}
