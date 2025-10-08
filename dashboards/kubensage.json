@@ -886,8 +886,8 @@
             "barAlignment": 0,
             "barWidthFactor": 0.6,
             "drawStyle": "line",
-            "fillOpacity": 58,
-            "gradientMode": "scheme",
+            "fillOpacity": 80,
+            "gradientMode": "opacity",
             "hideFrom": {
               "legend": false,
               "tooltip": false,
@@ -1229,7 +1229,7 @@
           "useBackend": false
         }
       ],
-      "title": "Node CPU clock speed in GHz",
+      "title": "Node CPU clock speed in MHz",
       "type": "stat"
     },
     {
@@ -3353,6 +3353,6 @@
   "timezone": "browser",
   "title": "Kubensage Node Dashboard",
   "uid": "aerxv4mavtgjkf",
-  "version": 9,
+  "version": 2,
   "weekStart": ""
 }
