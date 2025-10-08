@@ -31,12 +31,6 @@
     },
     {
       "type": "panel",
-      "id": "text",
-      "name": "Text",
-      "version": ""
-    },
-    {
-      "type": "panel",
       "id": "timeseries",
       "name": "Time series",
       "version": ""
@@ -65,32 +59,12 @@
   "links": [],
   "panels": [
     {
-      "gridPos": {
-        "h": 7,
-        "w": 24,
-        "x": 0,
-        "y": 0
-      },
-      "id": 17,
-      "options": {
-        "code": {
-          "language": "plaintext",
-          "showLineNumbers": false,
-          "showMiniMap": false
-        },
-        "content": "# kubensage-agent\n\n`kubensage-agent` is a lightweight telemetry agent designed to run on Kubernetes nodes. It collects detailed host- and\ncontainer-level metrics using the Kubernetes CRI (Container Runtime Interface) by establishing a direct gRPC connection\nto the container runtime socket. The collected data is sent via GRPC to an external relay for enrichment and export to\nsystems like Prometheus.\n\n---\n\n## ✨ Features\n\n* Collects **node metrics**: CPU, memory, PSI, network interfaces, uptime, kernel info, etc.\n* Collects **pod & container metrics**: per-container CPU, memory, filesystem, and swap usage.\n* Connects directly to the **CRI runtime socket** using **gRPC** to gather runtime data from `containerd`, `CRI-O`, or\n  `dockershim`.\n* Clean, modular Go code with extensibility in mind.\n\n---\n\n## 📊 Metrics Overview\n\nThe agent collects a wide variety of metrics structured into the following main objects:\n\n### `Metrics`\n\nTop-level struct containing everything gathered during one polling iteration.\n\n```go\npackage metrics\n\ntype Metrics struct {\n\tNodeMetrics *NodeMetrics\n\tPodMetrics  []*PodMetrics\n}\n\n```\n\n### `NodeMetrics`\n\nHost-level system metrics: CPU info, memory usage, PSI, network interfaces, OS/kernel metadata.\n\n### `PodMetrics` & `ContainerMetrics`\n\nEach pod includes container-level statistics, such as:\n\n* CPU usage (nano cores / core-seconds)\n* Memory usage (RSS, WorkingSet, etc.)\n* Filesystem usage (used bytes, inodes)\n* Swap usage (optional)\n\nAll metrics are safely extracted, even in partial or incomplete container states.\n\n---\n\n## 🔄 Agent Loop\n\nThe `main.go` runs a periodic collection loop:\n\n1. Detects the CRI socket (containerd, CRI-O, dockershim)\n2. Opens a **gRPC connection** to the container runtime via the detected socket (e.g.,\n   `/run/containerd/containerd.sock`)\n3. Every `n seconds`, calls `discovery.GetAllMetrics()` to collect all available data\n4. Converts the metrics to Proto\n5. Sends them to the relay, via GRPC\n\nHandles SIGINT/SIGTERM gracefully.\n\n---\n\n## 🛠️ Building the Agent\n\nTo build the `kubensage-agent` binary for multiple platforms, a `Makefile` is provided.\nThe output binaries are placed in `.go-builds/`, and versioning is controlled via the `VERSION` variable.\n\n### 🔧 Available Make Targets\n\n* `make build-all`: Builds binaries for all supported OS/ARCH combinations:\n\n    * Linux (amd64, arm64)\n    * macOS (amd64, arm64)\n    * Windows (amd64)\n\n* `make build-proto`: Compiles -proto files\n\n* `make build-linux-amd64`: Builds for Linux x86\\_64\n\n* `make build-linux-arm64`: Builds for Linux ARM64\n\n* `make build-darwin-amd64`: Builds for macOS Intel\n\n* `make build-darwin-arm64`: Builds for macOS Apple Silicon\n\n* `make build-windows-amd64`: Builds for Windows x86\\_64\n\n* `make clean`: Removes the `.go-builds` output directory\n\n### 🏷️ Release\n\nTo tag a release in Git you just need to open a PR to main branch, the CI will create automatically a new TAG and a new\nRelease.\n\n### 🧪 Example\n\n```bash\nVERSION=1.0.0 make build-linux-amd64\n```\n\nThis builds `kubensage-agent-1.0.0-linux-amd64` in the `.go-builds/` directory.\n\nEnsure Go is installed and in your `PATH`, and that you are in the root of the repository when running `make` commands.\n\nLogs are written to `kubensage-agent.log` in append mode. Ensure the agent has read access to CRI socket (usually root).\n\n---\n\n## 📡 Roadmap\n\n* [x] Collect node + container metrics\n* [x] Structured logging\n* [x] PSI support\n* [x] Agent push to relay\n* [ ] Systemd service unit for agent deployment\n\n---\n\n## 📄 License (for now)\n\nMIT © 2025 kubensage authors",
-        "mode": "markdown"
-      },
-      "pluginVersion": "12.1.0",
-      "type": "text"
-    },
-    {
       "collapsed": false,
       "gridPos": {
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 7
+        "y": 0
       },
       "id": 21,
       "panels": [],
@@ -223,7 +197,7 @@
         "h": 18,
         "w": 24,
         "x": 0,
-        "y": 8
+        "y": 1
       },
       "id": 19,
       "options": {
@@ -403,7 +377,7 @@
         "h": 14,
         "w": 24,
         "x": 0,
-        "y": 26
+        "y": 19
       },
       "id": 24,
       "options": {
@@ -535,7 +509,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 40
+        "y": 33
       },
       "id": 22,
       "panels": [],
@@ -604,10 +578,10 @@
         "overrides": []
       },
       "gridPos": {
-        "h": 19,
+        "h": 10,
         "w": 24,
         "x": 0,
-        "y": 41
+        "y": 34
       },
       "id": 20,
       "options": {
@@ -704,10 +678,10 @@
         "overrides": []
       },
       "gridPos": {
-        "h": 19,
+        "h": 10,
         "w": 24,
         "x": 0,
-        "y": 60
+        "y": 44
       },
       "id": 23,
       "options": {
@@ -744,7 +718,7 @@
       "type": "timeseries"
     }
   ],
-  "refresh": "5s",
+  "refresh": "auto",
   "schemaVersion": 41,
   "tags": [],
   "templating": {
@@ -826,13 +800,13 @@
     ]
   },
   "time": {
-    "from": "now-30m",
+    "from": "now-15m",
     "to": "now"
   },
   "timepicker": {},
   "timezone": "browser",
-  "title": "Kubensage Pod and Containers Dashboard",
+  "title": "Kubensage Pods and Containers Dashboard",
   "uid": "aerxv4mavtgjkfg",
-  "version": 11,
+  "version": 3,
   "weekStart": ""
 }
