@@ -55,12 +55,6 @@
     },
     {
       "type": "panel",
-      "id": "text",
-      "name": "Text",
-      "version": ""
-    },
-    {
-      "type": "panel",
       "id": "timeseries",
       "name": "Time series",
       "version": ""
@@ -89,32 +83,12 @@
   "links": [],
   "panels": [
     {
-      "gridPos": {
-        "h": 7,
-        "w": 24,
-        "x": 0,
-        "y": 0
-      },
-      "id": 17,
-      "options": {
-        "code": {
-          "language": "plaintext",
-          "showLineNumbers": false,
-          "showMiniMap": false
-        },
-        "content": "# kubensage-agent\n\n`kubensage-agent` is a lightweight telemetry agent designed to run on Kubernetes nodes. It collects detailed host- and\ncontainer-level metrics using the Kubernetes CRI (Container Runtime Interface) by establishing a direct gRPC connection\nto the container runtime socket. The collected data is sent via GRPC to an external relay for enrichment and export to\nsystems like Prometheus.\n\n---\n\n## ✨ Features\n\n* Collects **node metrics**: CPU, memory, PSI, network interfaces, uptime, kernel info, etc.\n* Collects **pod & container metrics**: per-container CPU, memory, filesystem, and swap usage.\n* Connects directly to the **CRI runtime socket** using **gRPC** to gather runtime data from `containerd`, `CRI-O`, or\n  `dockershim`.\n* Clean, modular Go code with extensibility in mind.\n\n---\n\n## 📊 Metrics Overview\n\nThe agent collects a wide variety of metrics structured into the following main objects:\n\n### `Metrics`\n\nTop-level struct containing everything gathered during one polling iteration.\n\n```go\npackage metrics\n\ntype Metrics struct {\n\tNodeMetrics *NodeMetrics\n\tPodMetrics  []*PodMetrics\n}\n\n```\n\n### `NodeMetrics`\n\nHost-level system metrics: CPU info, memory usage, PSI, network interfaces, OS/kernel metadata.\n\n### `PodMetrics` & `ContainerMetrics`\n\nEach pod includes container-level statistics, such as:\n\n* CPU usage (nano cores / core-seconds)\n* Memory usage (RSS, WorkingSet, etc.)\n* Filesystem usage (used bytes, inodes)\n* Swap usage (optional)\n\nAll metrics are safely extracted, even in partial or incomplete container states.\n\n---\n\n## 🔄 Agent Loop\n\nThe `main.go` runs a periodic collection loop:\n\n1. Detects the CRI socket (containerd, CRI-O, dockershim)\n2. Opens a **gRPC connection** to the container runtime via the detected socket (e.g.,\n   `/run/containerd/containerd.sock`)\n3. Every `n seconds`, calls `discovery.GetAllMetrics()` to collect all available data\n4. Converts the metrics to Proto\n5. Sends them to the relay, via GRPC\n\nHandles SIGINT/SIGTERM gracefully.\n\n---\n\n## 🛠️ Building the Agent\n\nTo build the `kubensage-agent` binary for multiple platforms, a `Makefile` is provided.\nThe output binaries are placed in `.go-builds/`, and versioning is controlled via the `VERSION` variable.\n\n### 🔧 Available Make Targets\n\n* `make build-all`: Builds binaries for all supported OS/ARCH combinations:\n\n    * Linux (amd64, arm64)\n    * macOS (amd64, arm64)\n    * Windows (amd64)\n\n* `make build-proto`: Compiles -proto files\n\n* `make build-linux-amd64`: Builds for Linux x86\\_64\n\n* `make build-linux-arm64`: Builds for Linux ARM64\n\n* `make build-darwin-amd64`: Builds for macOS Intel\n\n* `make build-darwin-arm64`: Builds for macOS Apple Silicon\n\n* `make build-windows-amd64`: Builds for Windows x86\\_64\n\n* `make clean`: Removes the `.go-builds` output directory\n\n### 🏷️ Release\n\nTo tag a release in Git you just need to open a PR to main branch, the CI will create automatically a new TAG and a new\nRelease.\n\n### 🧪 Example\n\n```bash\nVERSION=1.0.0 make build-linux-amd64\n```\n\nThis builds `kubensage-agent-1.0.0-linux-amd64` in the `.go-builds/` directory.\n\nEnsure Go is installed and in your `PATH`, and that you are in the root of the repository when running `make` commands.\n\nLogs are written to `kubensage-agent.log` in append mode. Ensure the agent has read access to CRI socket (usually root).\n\n---\n\n## 📡 Roadmap\n\n* [x] Collect node + container metrics\n* [x] Structured logging\n* [x] PSI support\n* [x] Agent push to relay\n* [ ] Systemd service unit for agent deployment\n\n---\n\n## 📄 License (for now)\n\nMIT © 2025 kubensage authors",
-        "mode": "markdown"
-      },
-      "pluginVersion": "12.1.0",
-      "type": "text"
-    },
-    {
       "collapsed": false,
       "gridPos": {
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 7
+        "y": 0
       },
       "id": 41,
       "panels": [],
@@ -156,7 +130,7 @@
         "h": 3,
         "w": 24,
         "x": 0,
-        "y": 8
+        "y": 1
       },
       "id": 2,
       "options": {
@@ -321,7 +295,7 @@
         "h": 3,
         "w": 24,
         "x": 0,
-        "y": 11
+        "y": 4
       },
       "id": 8,
       "options": {
@@ -412,7 +386,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 14
+        "y": 7
       },
       "id": 9,
       "panels": [],
@@ -549,6 +523,31 @@
                 }
               }
             ]
+          },
+          {
+            "__systemRef": "hideSeriesFrom",
+            "matcher": {
+              "id": "byNames",
+              "options": {
+                "mode": "exclude",
+                "names": [
+                  "Available memory on node 'k8s-master'",
+                  "Used memory on node 'k8s-master'"
+                ],
+                "prefix": "All except:",
+                "readOnly": true
+              }
+            },
+            "properties": [
+              {
+                "id": "custom.hideFrom",
+                "value": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": true
+                }
+              }
+            ]
           }
         ]
       },
@@ -556,7 +555,7 @@
         "h": 13,
         "w": 16,
         "x": 0,
-        "y": 15
+        "y": 8
       },
       "id": 3,
       "options": {
@@ -663,7 +662,7 @@
         "h": 5,
         "w": 8,
         "x": 16,
-        "y": 15
+        "y": 8
       },
       "id": 1,
       "options": {
@@ -743,7 +742,7 @@
         "h": 8,
         "w": 4,
         "x": 16,
-        "y": 20
+        "y": 13
       },
       "id": 4,
       "options": {
@@ -821,7 +820,7 @@
         "h": 8,
         "w": 4,
         "x": 20,
-        "y": 20
+        "y": 13
       },
       "id": 5,
       "options": {
@@ -936,7 +935,7 @@
         "h": 14,
         "w": 24,
         "x": 0,
-        "y": 28
+        "y": 21
       },
       "id": 7,
       "options": {
@@ -1026,7 +1025,7 @@
         "h": 14,
         "w": 14,
         "x": 0,
-        "y": 42
+        "y": 35
       },
       "id": 15,
       "options": {
@@ -1108,7 +1107,7 @@
         "h": 7,
         "w": 10,
         "x": 14,
-        "y": 42
+        "y": 35
       },
       "id": 14,
       "options": {
@@ -1188,7 +1187,7 @@
         "h": 7,
         "w": 10,
         "x": 14,
-        "y": 49
+        "y": 42
       },
       "id": 27,
       "options": {
@@ -1305,7 +1304,7 @@
         "h": 9,
         "w": 12,
         "x": 0,
-        "y": 56
+        "y": 49
       },
       "id": 38,
       "options": {
@@ -1412,7 +1411,7 @@
         "h": 9,
         "w": 12,
         "x": 12,
-        "y": 56
+        "y": 49
       },
       "id": 39,
       "options": {
@@ -1452,7 +1451,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 65
+        "y": 58
       },
       "id": 25,
       "panels": [],
@@ -1525,7 +1524,7 @@
         "h": 12,
         "w": 12,
         "x": 0,
-        "y": 66
+        "y": 59
       },
       "id": 36,
       "options": {
@@ -1627,7 +1626,7 @@
         "h": 12,
         "w": 12,
         "x": 12,
-        "y": 66
+        "y": 59
       },
       "id": 37,
       "options": {
@@ -1749,7 +1748,7 @@
         "h": 10,
         "w": 16,
         "x": 0,
-        "y": 78
+        "y": 71
       },
       "id": 18,
       "options": {
@@ -1840,7 +1839,7 @@
         "h": 5,
         "w": 8,
         "x": 16,
-        "y": 78
+        "y": 71
       },
       "id": 20,
       "options": {
@@ -1943,7 +1942,7 @@
         "h": 5,
         "w": 8,
         "x": 16,
-        "y": 83
+        "y": 76
       },
       "id": 22,
       "options": {
@@ -2095,7 +2094,7 @@
         "h": 10,
         "w": 16,
         "x": 0,
-        "y": 88
+        "y": 81
       },
       "id": 35,
       "options": {
@@ -2186,7 +2185,7 @@
         "h": 10,
         "w": 8,
         "x": 16,
-        "y": 88
+        "y": 81
       },
       "id": 21,
       "options": {
@@ -2360,7 +2359,7 @@
         "h": 12,
         "w": 24,
         "x": 0,
-        "y": 98
+        "y": 91
       },
       "id": 28,
       "options": {
@@ -2455,7 +2454,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 110
+        "y": 103
       },
       "id": 26,
       "panels": [],
@@ -2533,7 +2532,7 @@
         "h": 13,
         "w": 12,
         "x": 0,
-        "y": 111
+        "y": 104
       },
       "id": 33,
       "options": {
@@ -2663,7 +2662,7 @@
         "h": 13,
         "w": 12,
         "x": 12,
-        "y": 111
+        "y": 104
       },
       "id": 34,
       "options": {
@@ -2727,7 +2726,7 @@
         "h": 14,
         "w": 12,
         "x": 0,
-        "y": 124
+        "y": 117
       },
       "id": 23,
       "options": {
@@ -2840,7 +2839,7 @@
         "h": 4,
         "w": 12,
         "x": 12,
-        "y": 124
+        "y": 117
       },
       "id": 32,
       "options": {
@@ -2917,7 +2916,7 @@
         "h": 4,
         "w": 12,
         "x": 12,
-        "y": 128
+        "y": 121
       },
       "id": 31,
       "options": {
@@ -2996,7 +2995,7 @@
         "h": 6,
         "w": 4,
         "x": 12,
-        "y": 132
+        "y": 125
       },
       "id": 29,
       "options": {
@@ -3079,7 +3078,7 @@
         "h": 6,
         "w": 4,
         "x": 16,
-        "y": 132
+        "y": 125
       },
       "id": 24,
       "options": {
@@ -3158,7 +3157,7 @@
         "h": 6,
         "w": 4,
         "x": 20,
-        "y": 132
+        "y": 125
       },
       "id": 30,
       "options": {
@@ -3273,7 +3272,7 @@
         "h": 10,
         "w": 24,
         "x": 0,
-        "y": 138
+        "y": 131
       },
       "id": 40,
       "options": {
@@ -3353,6 +3352,6 @@
   "timezone": "browser",
   "title": "Kubensage Node Dashboard",
   "uid": "aerxv4mavtgjkf",
-  "version": 2,
+  "version": 3,
   "weekStart": ""
 }
